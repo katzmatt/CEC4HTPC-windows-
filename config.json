@@ -3,7 +3,7 @@
   "adapter_hdmi_port": 3,
   "startup_delay_seconds": 5,
   "startup_retry_count": 5,
-  "startup_retry_interval_seconds": 8,
+  "startup_retry_interval_seconds": 10,
   "power_on_at_startup": true,
   "standby_on_shutdown": true,
   "standby_on_sleep": true,

@@ -13,8 +13,22 @@ Headless CEC automation for Windows HTPCs. Runs as a system-tray app that starts
 | **Startup** | Powers on the TV and switches to your configured HDMI input at login. Retries repeatedly to reclaim the input from aggressive devices (e.g. Apple TV) that also broadcast `ActiveSource` on wake. |
 | **Shutdown** | Standbys the TV when Windows shuts down. |
 | **Sleep / Resume** | Standbys the TV on sleep; wakes it and reclaims the input on resume. |
-| **Volume Lock** | Pins Windows master volume at 100%. Volume Up/Down/Mute key presses are intercepted and sent as CEC commands to the TV or soundbar instead. |
+| **Volume Lock** | Pins Windows master volume at 100%. Volume Up/Down/Mute key presses are intercepted and sent as CEC commands to the TV or soundbar instead. ⚠️ **WIP** — see [Known Issues](#known-issues). |
 | **System Tray** | Right-click menu with quick power controls, per-port HDMI input selection, adapter reconnect, and a shortcut to the bundled CEC Virtual Remote for manual control. |
+
+---
+
+## Known Issues
+
+- **Volume control via keyboard/system volume buttons is WIP** and not yet reliable — it'll be fixed in the next major release. In the meantime, **volume control from the CEC Virtual Remote works great** and can be used at any time (VOL +/-, MUTE buttons in the tray's "Open CECRemote" window).
+
+---
+
+## Screenshots
+
+| Tray Menu | CEC Virtual Remote |
+|---|---|
+| ![Tray menu](screenshot2.PNG) | ![CEC Virtual Remote](screenshot.PNG) |
 
 ---
 
