@@ -4,6 +4,9 @@
 
 Headless CEC automation for Windows HTPCs. Runs as a system-tray app that starts with Windows and automatically controls your TV over HDMI-CEC using the [Pulse-Eight USB-CEC Adapter](https://www.pulse-eight.com/p/104/usb-hdmi-cec-adapter).
 
+> [!WARNING]
+> Every part of this project _HEAVILY_ used LLMs. This project is by no means perfect, but it works very well in my own testing*
+
 ---
 
 ## Features
@@ -208,3 +211,10 @@ Only one CEC4HTPC instance can run at a time — a second launch (e.g. a stray d
 
 - `virtual_remote.py` — Bundled CEC Virtual Remote; launched from the tray menu and shares the existing CEC connection. Can also be run standalone (`python virtual_remote.py`).
 - [libcec / Pulse-Eight](https://github.com/Pulse-Eight/libcec) — underlying CEC library and `cec-client.exe`.
+
+## LLM Use*
+
+Everything here was written in some form by Claude, I have a light backround in coding, so I have done my best to structure this to be as simple and clean as possible. 
+The primary purpose of this project is to make use of the fantastic adapter by PulseEight and do my best to make a tool to control my TV from my computer.
+If someone wants to help improve this project or make a organic home grown replacement, I would be overjoyed. 
+Thanks for reading!
