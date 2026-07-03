@@ -2,7 +2,7 @@
 
 **v1.0.0**
 
-Headless CEC automation for Windows HTPCs. Runs as a system-tray app that starts with Windows and automatically controls your TV over HDMI-CEC using the [Pulse-Eight USB-CEC Adapter](https://www.pulse-eight.com/p/104/usb-hdmi-cec-adapter).
+Headless CEC automation for Windows HTPC/Gaming machines. Runs as a system-tray app that starts with Windows and automatically controls your TV over HDMI-CEC using the [Pulse-Eight USB-CEC Adapter](https://www.pulse-eight.com/p/104/usb-hdmi-cec-adapter).
 
 > [!WARNING]
 > Every part of this project _HEAVILY_ used LLMs. This project is by no means perfect, but it works very well in my own testing*
@@ -13,17 +13,11 @@ Headless CEC automation for Windows HTPCs. Runs as a system-tray app that starts
 
 | Feature | Description |
 |---|---|
-| **Startup** | Powers on the TV and switches to your configured HDMI input at login. Retries repeatedly to reclaim the input from aggressive devices (e.g. Apple TV) that also broadcast `ActiveSource` on wake. |
+| **Startup** | Powers on the TV and switches to your configured HDMI input at login. (currently takes about 1min from power button press to boot and turn on the tv) |
 | **Shutdown** | Standbys the TV when Windows shuts down. |
-| **Sleep / Resume** | Standbys the TV on sleep; wakes it and reclaims the input on resume. |
-| **Volume Lock** | Pins Windows master volume at 100%. Volume Up/Down/Mute key presses are intercepted and sent as CEC commands to the TV or soundbar instead. ⚠️ **WIP** — see [Known Issues](#known-issues). |
+| **Sleep / Resume** | Standbys the TV on sleep; wakes it and reclaims the input on resume. (resume takes about 20-30s from button press) |
+| **Volume Control** | Pins Windows master volume at 100%. Volume Up/Down/Mute key presses are intercepted and sent as CEC commands to the TV or soundbar instead. ⚠️ **WIP** — see [Known Issues](#known-issues). |
 | **System Tray** | Right-click menu with quick power controls, per-port HDMI input selection, adapter reconnect, and a shortcut to the bundled CEC Virtual Remote for manual control. |
-
----
-
-## Known Issues
-
-- **Volume control via keyboard/system volume buttons is WIP** and not yet reliable — it'll be fixed in the next major release. In the meantime, **volume control from the CEC Virtual Remote works great** and can be used at any time (VOL +/-, MUTE buttons in the tray's "Open CECRemote" window).
 
 ---
 
@@ -41,6 +35,7 @@ Headless CEC automation for Windows HTPCs. Runs as a system-tray app that starts
 - Python 3.10+
 - [Pulse-Eight USB-CEC Adapter](https://www.pulse-eight.com/p/104/usb-hdmi-cec-adapter) with drivers installed
   - Default install path: `C:\Program Files (x86)\Pulse-Eight\USB-CEC Adapter\`
+- **Automatic Login MUST be enabled for any Wake functions to work** this script runs on user-login so it will not turn on the tv until it reaches the desktop
 
 ---
 
@@ -69,17 +64,19 @@ If the adapter itself is misreporting its own physical address (see
 [Fixing an adapter that reports the wrong HDMI port](#fixing-an-adapter-that-reports-the-wrong-hdmi-port)
 below), also set `adapter_hdmi_port` to the port it's actually plugged into.
 
+The HDMI adapter can techincally be plugged into _any_ HDMI port on the TV, but it is reccomended to connect this In-Line with the HDMI of your PC's source.
+
 ### 3. Register the startup task
 
 Run `install.bat` **as Administrator**. It will:
 - Auto-detect `pythonw.exe`
 - Install pip dependencies
-- Generate `RunNow.bat`, a per-machine launcher with your resolved `pythonw.exe`/script paths baked in (gitignored — regenerate by re-running `install.bat` if you move the repo or change Python versions)
+- Generate `RunNow.bat`, a per-machine launcher with your resolved `pythonw.exe`/script paths baked in. This is used to Manually run the script for testing (gitignored — regenerate by re-running `install.bat` if you move the repo or change Python versions)
 - Create a Task Scheduler task that launches CEC4HTPC silently 5 seconds after login (at highest privilege, so the volume key hook works even in elevated apps)
 
 To remove the startup task later, run `uninstall.bat`.
 
-### 4. Test immediately
+### 4. Test it
 
 ```
 pythonw cec4htpc.py
@@ -121,9 +118,15 @@ All settings live in `config.json` (created automatically on first run if missin
 | `standby_on_sleep` | `true` | Toggle sleep standby |
 | `wake_on_resume` | `true` | Toggle resume wake |
 | `lock_volume` | `true` | Toggle volume key interception and 100% lock |
-| `allow_tv_to_wake_pc` | `false` | When `false` (default), CEC is disconnected before sleep so the adapter cannot fire a USB remote-wakeup when the TV is turned on by hand. Set `true` if you want the TV power button to wake the PC. |
+| `allow_tv_to_wake_pc` | `false` | When `false` (default), CEC is disconnected before sleep so the adapter cannot fire a USB remote-wakeup when the TV is turned on by hand. Set `true` if you want the TV power button to wake the PC. ⚠️ **WIP** |
 
 Changes to `config.json` take effect the next time CEC4HTPC starts. HDMI input can also be switched live from the tray menu.
+
+---
+
+## Known Issues
+
+- **Volume control via keyboard/system volume buttons is WIP** and not yet reliable — it'll be fixed in the next major release. In the meantime, **volume control from the CEC Virtual Remote works great** and can be used at any time (VOL +/-, MUTE buttons in the tray's "Open CECRemote" window).
 
 ---
 
