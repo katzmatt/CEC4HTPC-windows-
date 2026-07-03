@@ -1,5 +1,6 @@
 {
   "hdmi_input": "3000",
+  "adapter_hdmi_port": 3,
   "startup_delay_seconds": 5,
   "startup_retry_count": 5,
   "startup_retry_interval_seconds": 8,
@@ -8,5 +9,5 @@
   "standby_on_sleep": true,
   "wake_on_resume": true,
   "lock_volume": true,
-  "allow_tv_to_wake_pc": false
+  "allow_tv_to_wake_pc": true
 }

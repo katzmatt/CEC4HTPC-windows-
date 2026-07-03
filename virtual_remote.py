@@ -10,10 +10,12 @@ Can also be run standalone (python virtual_remote.py) in which case it
 manages its own connection identically to the original CECRemote.
 """
 
+import json
 import subprocess
 import threading
 import time
 import tkinter as tk
+from datetime import datetime
 from pathlib import Path
 
 from cec_controller import CECController
@@ -21,6 +23,19 @@ from cec_controller import CECController
 _CEC_EXE = Path(
     r"C:\Program Files (x86)\Pulse-Eight\USB-CEC Adapter\cec-client.exe"
 )
+
+_CONFIG_PATH = Path(__file__).parent / "config.json"
+
+
+def _adapter_hdmi_port() -> int:
+    """Read adapter_hdmi_port from config.json for standalone mode, so a
+    manually-run CECRemote negotiates the same physical address as the tray
+    app instead of falling back to the cec-client default of port 1."""
+    try:
+        with open(_CONFIG_PATH, encoding="utf-8") as f:
+            return json.load(f).get("adapter_hdmi_port", 1)
+    except (OSError, json.JSONDecodeError):
+        return 1
 
 
 # ── GUI ────────────────────────────────────────────────────────────────────────
@@ -44,6 +59,7 @@ class VirtualRemote(tk.Tk):
     C_LOG_BG  = "#0f172a"
     C_LOG_OK  = "#86efac"
     C_LOG_ERR = "#fca5a5"
+    C_LOG_RAW = "#64748b"
     C_DOT_OK  = "#22c55e"
     C_DOT_ERR = "#ef4444"
 
@@ -56,7 +72,7 @@ class VirtualRemote(tk.Tk):
             self._cec    = cec
             self._shared = True
         else:
-            self._cec    = CECController()
+            self._cec    = CECController(adapter_hdmi_port=_adapter_hdmi_port())
             self._shared = False
 
         self.title("CEC Virtual Remote")
@@ -64,6 +80,11 @@ class VirtualRemote(tk.Tk):
         self.resizable(False, False)
         self._build_ui()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+        # Mirror the adapter's raw cec-client.exe output (bus traffic, errors,
+        # libcec warnings) into the log box for troubleshooting, not just our
+        # own terse command acks.
+        self._cec.on_output = self._append_raw_log
 
         if self._shared:
             # Connection already open — just reflect current state.
@@ -105,8 +126,12 @@ class VirtualRemote(tk.Tk):
         # POWER
         self._hr(body); self._lbl(body, "POWER")
         pf = tk.Frame(body, bg=self.C_BODY); pf.pack(pady=5)
+        # tv_on() addresses the TV's logical address directly and carries no
+        # physical-address payload, so — unlike ActiveSource ("as") — it can
+        # never send the TV to the wrong HDMI port. Use the HDMI INPUT picker
+        # below to explicitly claim a port.
         self._btn(pf, "⏻   POWER ON", self.C_PWR_ON, self.C_PWR_ON_H,
-                   lambda: self._fire(self._cec.power_on)).pack(pady=3)
+                   lambda: self._fire(self._cec.tv_on)).pack(pady=3)
         self._btn(pf, "⏼   STANDBY",  self.C_STBY,   self.C_STBY_H,
                    lambda: self._fire(self._cec.standby)).pack(pady=3)
 
@@ -161,6 +186,7 @@ class VirtualRemote(tk.Tk):
                              state="disabled", wrap="word", bd=0)
         self._log.tag_config("ok",  foreground=self.C_LOG_OK)
         self._log.tag_config("err", foreground=self.C_LOG_ERR)
+        self._log.tag_config("raw", foreground=self.C_LOG_RAW)
         self._log.pack()
 
     # ── helpers ────────────────────────────────────────────────────────────────
@@ -236,15 +262,27 @@ class VirtualRemote(tk.Tk):
 
     def _log_line(self, msg, ok=True):
         tag = "ok" if ok else "err"
+        prefix = ("✓ " if ok else "✗ ")
+        self._append_log_line(prefix + msg, tag)
+
+    def _append_raw_log(self, line):
+        """Called from the cec-client.exe stdout-drain thread — marshal onto
+        the Tk main thread before touching any widget."""
+        self.after(0, lambda: self._append_log_line(line, "raw"))
+
+    def _append_log_line(self, text, tag):
+        ts = datetime.now().strftime("%H:%M:%S")
         self._log.config(state="normal")
-        self._log.insert("end", ("✓ " if ok else "✗ ") + msg + "\n", tag)
+        self._log.insert("end", f"{ts}  {text}\n", tag)
         self._log.see("end")
         end_row = int(self._log.index("end-1c").split(".")[0])
-        if end_row > 100:
-            self._log.delete("1.0", f"{end_row - 100}.0")
+        if end_row > 200:
+            self._log.delete("1.0", f"{end_row - 200}.0")
         self._log.config(state="disabled")
 
     def _on_close(self):
+        if self._cec.on_output is self._append_raw_log:
+            self._cec.on_output = None
         if not self._shared:
             self._cec.disconnect()
         self.destroy()

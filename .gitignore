@@ -2,3 +2,5 @@
 .claude/
 __pycache__/
 *.pyc
+cec4htpc.log*
+RunNow.bat

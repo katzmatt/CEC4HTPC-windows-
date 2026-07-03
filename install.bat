@@ -42,6 +42,14 @@ set "SCRIPT=%~dp0cec4htpc.py"
 echo Script:  %SCRIPT%
 echo.
 
+REM ── generate RunNow.bat (per-machine convenience launcher) ─────────────────
+(
+    echo @echo off
+    echo "!PYTHONW!" "!SCRIPT!"
+) > "%~dp0RunNow.bat"
+echo Generated RunNow.bat for manual launches.
+echo.
+
 REM ── install pip dependencies ───────────────────────────────────────────────
 echo Installing Python dependencies...
 "%PYTHONW%" -m pip install -r "%~dp0requirements.txt" --quiet
@@ -58,7 +66,7 @@ echo Registering startup task (requires admin for RunLevel Highest)...
 set "CEC_PY=!PYTHONW!"
 set "CEC_SC=!SCRIPT!"
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& { $exe = $env:CEC_PY; $arg = '\"' + $env:CEC_SC + '\"'; $action = New-ScheduledTaskAction -Execute $exe -Argument $arg; $trigger = New-ScheduledTaskTrigger -AtLogOn; $trigger.Delay = New-TimeSpan -Seconds 30; $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -RunLevel Highest -LogonType Interactive; $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable; Register-ScheduledTask -TaskName 'CEC4HTPC' -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& { $exe = $env:CEC_PY; $arg = '\"' + $env:CEC_SC + '\"'; $action = New-ScheduledTaskAction -Execute $exe -Argument $arg; $trigger = New-ScheduledTaskTrigger -AtLogOn; $trigger.Delay = New-TimeSpan -Seconds 5; $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -RunLevel Highest -LogonType Interactive; $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable; Register-ScheduledTask -TaskName 'CEC4HTPC' -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null }"
 
 if errorlevel 1 (
     echo.
@@ -66,7 +74,7 @@ if errorlevel 1 (
 ) else (
     echo.
     echo SUCCESS!
-    echo CEC4HTPC will launch automatically 30 seconds after login.
+    echo CEC4HTPC will launch automatically 5 seconds after login.
     echo.
     echo To start it immediately, run:
     echo   "!PYTHONW!" "!SCRIPT!"

@@ -5,6 +5,7 @@ via a hidden Win32 top-level window on a dedicated background thread.
 Callbacks are called from that thread; keep them short or hand off to threads.
 """
 
+import logging
 import threading
 
 try:
@@ -15,6 +16,8 @@ try:
 except ImportError:
     _WIN32_OK = False
 
+_log = logging.getLogger("cec4htpc.power")
+
 # Windows message constants
 _WM_QUERYENDSESSION = 0x0011
 _WM_ENDSESSION      = 0x0016
@@ -22,6 +25,12 @@ _WM_POWERBROADCAST  = 0x0218
 _PBT_APMSUSPEND            = 0x0004   # system is suspending
 _PBT_APMRESUMESUSPEND      = 0x0007   # resumed after user-initiated suspend
 _PBT_APMRESUMEAUTOMATIC    = 0x0012   # resumed (may not have user at keyboard)
+
+_PBT_NAMES = {
+    _PBT_APMSUSPEND:         "PBT_APMSUSPEND",
+    _PBT_APMRESUMESUSPEND:   "PBT_APMRESUMESUSPEND",
+    _PBT_APMRESUMEAUTOMATIC: "PBT_APMRESUMEAUTOMATIC",
+}
 
 _CLASS_NAME = "CEC4HTPCPowerMonitor"
 
@@ -45,12 +54,17 @@ class PowerMonitor:
 
     def start(self):
         if not _WIN32_OK:
-            return   # pywin32 not installed — skip silently
+            _log.warning("pywin32 not installed — power events will not be detected")
+            return
         self._thread.start()
-        self._ready.wait(timeout=3.0)
+        if not self._ready.wait(timeout=3.0):
+            _log.error("Power monitor window failed to initialize within 3s")
+        else:
+            _log.info("Power monitor window ready (hwnd=%s)", self._hwnd)
 
     def stop(self):
         if self._hwnd:
+            _log.info("Stopping power monitor")
             try:
                 win32gui.PostMessage(self._hwnd, win32con.WM_QUIT, 0, 0)
             except Exception:
@@ -87,6 +101,8 @@ class PowerMonitor:
 
     def _wndproc(self, hwnd, msg, wparam, lparam):
         if msg == _WM_POWERBROADCAST:
+            _log.info("WM_POWERBROADCAST wparam=%s (%s)",
+                      hex(wparam), _PBT_NAMES.get(wparam, "other"))
             if wparam == _PBT_APMSUSPEND:
                 threading.Thread(
                     target=self._on_sleep, daemon=True, name="CEC-sleep"
@@ -98,11 +114,13 @@ class PowerMonitor:
             return True
 
         elif msg == _WM_QUERYENDSESSION:
+            _log.info("WM_QUERYENDSESSION received")
             # Signal that we consent to shutdown; do actual work in WM_ENDSESSION
             return True
 
         elif msg == _WM_ENDSESSION:
             if wparam:
+                _log.info("WM_ENDSESSION — running shutdown handler")
                 # Synchronous — Windows gives us ~5 s before force-killing;
                 # the CEC standby command takes ~0.6 s, well within that window.
                 self._on_shutdown()
